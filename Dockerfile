@@ -230,4 +230,21 @@ RUN chmod +x /opt/codex/setup_universal.sh
 COPY entrypoint.sh /opt/entrypoint.sh
 RUN chmod +x /opt/entrypoint.sh
 
+### ADDITIONAL SETUP ###
+
+# Add start script for the job
+COPY run.sh /opt/run.sh
+RUN chmod +x /opt/run.sh
+
+# Copy the agency mcp client code
+COPY mcpclient.py /opt/mcpclient.py
+
+# Make sure ubuntu user has sudo access 
+# since we run as ubuntu user and not root
+RUN usermod -aG sudo ubuntu \
+    && echo "ubuntu ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Make sure the ubuntu user has access to the /root directory
+RUN chown -R ubuntu:ubuntu /root
+
 ENTRYPOINT  ["/opt/entrypoint.sh"]
