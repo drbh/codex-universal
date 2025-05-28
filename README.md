@@ -2,7 +2,7 @@
 
 `codex-universal` is a reference implementation of the base Docker image available in [OpenAI Codex](http://platform.openai.com/docs/codex).
 
-This repository is intended to help developers cutomize environments in Codex, by providing a similar image that can be pulled and run locally. This is not an identical environment but should help for debugging and development.
+This repository is intended to help developers customize environments in Codex, by providing a similar image that can be pulled and run locally. This is not an identical environment but should help for debugging and development.
 
 For more details on environment setup, see [OpenAI Codex](http://platform.openai.com/docs/codex).
 
@@ -14,7 +14,7 @@ The Docker image is available at:
 docker pull ghcr.io/openai/codex-universal:latest
 ```
 
-The below script shows how can you approximate the `setup` environment in Codex:
+The below script shows how you can approximate the `setup` environment in Codex:
 
 ```
 docker run --rm -it \
