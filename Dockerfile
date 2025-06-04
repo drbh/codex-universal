@@ -222,6 +222,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 
+### OPENAI CODEX CLI ###
+
+# Install OpenAI Codex CLI globally
+RUN . $NVM_DIR/nvm.sh && nvm use $NODE_VERSION && npm install -g @openai/codex
+
+### AGENTS ###
+
+# Copy agent scripts
+COPY agents/ /opt/agents/
+RUN chmod +x /opt/agents/*
+
 ### SETUP SCRIPTS ###
 
 COPY setup_universal.sh /opt/codex/setup_universal.sh
@@ -229,15 +240,6 @@ RUN chmod +x /opt/codex/setup_universal.sh
 
 COPY entrypoint.sh /opt/entrypoint.sh
 RUN chmod +x /opt/entrypoint.sh
-
-### ADDITIONAL SETUP ###
-
-# Add start script for the job
-COPY run.sh /opt/run.sh
-RUN chmod +x /opt/run.sh
-
-# Copy the agency mcp client code
-COPY mcpclient.py /opt/mcpclient.py
 
 # Make sure ubuntu user has sudo access 
 # since we run as ubuntu user and not root

@@ -1,0 +1,88 @@
+#!/bin/bash
+# MCP Client Agent - Traditional MCP server interactions
+set -euo pipefail
+
+# Show help if requested
+if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
+    cat << 'EOF'
+MCP Client Agent - Traditional MCP server interactions
+
+USAGE:
+    /opt/agents/mcp
+
+ENVIRONMENT VARIABLES:
+    REPO_URL        Git repository URL (required)
+    OPENAI_API_KEY  OpenAI API key (required for openai provider)
+    PROMPT          Task prompt (default: "What is the capital of France?")
+    LLM_PROVIDER    Provider: openai|anthropic (default: "openai")  
+    LLM_MODEL       Model to use (provider-specific)
+    MAX_STEPS       Maximum steps (default: 30)
+    TEMPERATURE     Temperature (default: 0.0)
+    MAX_TOKENS      Max tokens limit
+    MCP_PATH        MCP server path (default: "/tmp/")
+    WORK_DIR        Working directory (default: "/tmp")
+    DRY_RUN         Show commands without executing (default: false)
+
+EXAMPLES:
+    REPO_URL=https://github.com/user/repo PROMPT="analyze the code" /opt/agents/mcp
+    LLM_PROVIDER=anthropic /opt/agents/mcp
+EOF
+    exit 0
+fi
+
+# Required
+REPO_URL="${REPO_URL:?REPO_URL required}"
+
+# Configuration
+LLM_PROVIDER="${LLM_PROVIDER:-openai}"
+LLM_MODEL="${LLM_MODEL:-}"
+MAX_STEPS="${MAX_STEPS:-30}"
+TEMPERATURE="${TEMPERATURE:-0.0}"
+MAX_TOKENS="${MAX_TOKENS:-}"
+PROMPT="${PROMPT:-What is the capital of France?}"
+MCP_PATH="${MCP_PATH:-/tmp/}"
+WORK_DIR="${WORK_DIR:-/tmp}"
+
+echo "🔗 MCP Client Agent"
+echo "Provider: $LLM_PROVIDER | Model: ${LLM_MODEL:-default} | Steps: $MAX_STEPS"
+echo "Repository: $REPO_URL"
+echo ""
+
+# Setup workspace
+cd "$WORK_DIR"
+REPO_NAME=$(basename "$REPO_URL" .git)
+echo "📦 Cloning repository..."
+git clone "$REPO_URL" || { echo "❌ Clone failed"; exit 1; }
+cd "$REPO_NAME"
+
+# Install dependencies
+echo "📚 Installing dependencies..."
+pip install -q mcp-use python-dotenv
+if [[ "$LLM_PROVIDER" == "openai" ]]; then
+    pip install -q langchain-openai
+else
+    pip install -q langchain-anthropic
+fi
+
+# Build arguments
+ARGS=("--provider" "$LLM_PROVIDER" "--max-steps" "$MAX_STEPS" "--temperature" "$TEMPERATURE" "--mcp-path" "$MCP_PATH")
+[[ -n "$LLM_MODEL" ]] && ARGS+=("--model" "$LLM_MODEL")
+[[ -n "$MAX_TOKENS" ]] && ARGS+=("--max-tokens" "$MAX_TOKENS")
+ARGS+=("$PROMPT")
+
+# Check for dry run
+if [[ "${DRY_RUN:-}" == "true" ]]; then
+    echo "🔍 DRY RUN - Would execute:"
+    echo "python /opt/agents/python-mcp/client.py ${ARGS[*]}"
+    exit 0
+fi
+
+# Execute
+echo "🚀 Running MCP client..."
+python /opt/agents/python-mcp/client.py "${ARGS[@]}"
+
+# Show results
+echo ""
+echo "📊 Changes made:"
+git diff > /tmp/patch.diff
+cat /tmp/patch.diff

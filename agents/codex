@@ -1,0 +1,85 @@
+#!/bin/bash
+# Codex CLI Agent - AI-powered code generation and editing
+set -euo pipefail
+
+# Show help if requested
+if [[ "${1:-}" == "--help" ]] || [[ "${1:-}" == "-h" ]]; then
+    cat << 'EOF'
+Codex CLI Agent - AI-powered code generation and editing
+
+USAGE:
+    /opt/agents/codex
+
+ENVIRONMENT VARIABLES:
+    REPO_URL        Git repository URL (required)
+    OPENAI_API_KEY  OpenAI API key (required)
+    PROMPT          Task prompt (default: "What is the capital of France?")
+    LLM_MODEL       Model to use (default: "o4-mini")
+    APPROVAL_MODE   Approval mode: suggest|auto-edit|full-auto (default: "full-auto")
+    WORK_DIR        Working directory (default: "/tmp")
+    DRY_RUN         Show commands without executing (default: false)
+
+EXAMPLES:
+    REPO_URL=https://github.com/user/repo PROMPT="fix the bug" /opt/agents/codex
+    APPROVAL_MODE=suggest /opt/agents/codex
+EOF
+    exit 0
+fi
+
+# Required
+REPO_URL="${REPO_URL:?REPO_URL required}"
+OPENAI_API_KEY="${OPENAI_API_KEY:?OPENAI_API_KEY required}"
+
+# Configuration
+LLM_MODEL="${LLM_MODEL:-o4-mini}"
+APPROVAL_MODE="${APPROVAL_MODE:-full-auto}"
+QUIET="${QUIET:-true}"
+PROMPT="${PROMPT:-What is the capital of France?}"
+WORK_DIR="${WORK_DIR:-/tmp}"
+
+echo "🤖 Codex CLI Agent"
+echo "Model: $LLM_MODEL | Mode: $APPROVAL_MODE"
+echo "Repository: $REPO_URL"
+echo "Prompt: $PROMPT"
+echo ""
+
+# Setup workspace
+cd "$WORK_DIR"
+REPO_NAME=$(basename "$REPO_URL" .git)
+echo "📦 Cloning repository..."
+git clone "$REPO_URL" || { echo "❌ Clone failed"; exit 1; }
+cd "$REPO_NAME"
+
+# Git configuration
+git config user.email "codex@example.com" 2>/dev/null || true
+git config user.name "Codex CLI" 2>/dev/null || true
+
+# Ensure Codex CLI is available
+export PATH="/root/.nvm/versions/node/v22/bin:$PATH"
+
+# Check for dry run
+if [[ "${DRY_RUN:-}" == "true" ]]; then
+    echo "🔍 DRY RUN - Would execute:"
+    echo "codex --approval-mode $APPROVAL_MODE --model $LLM_MODEL \"$PROMPT\""
+    exit 0
+fi
+
+# Execute
+echo "🚀 Running Codex CLI..."
+if [[ "$QUIET" == "true" ]]; then
+    codex --approval-mode "$APPROVAL_MODE" --model "$LLM_MODEL" --quiet "$PROMPT"
+else
+    codex --approval-mode "$APPROVAL_MODE" --model "$LLM_MODEL" "$PROMPT"
+fi
+
+# Show results
+echo ""
+echo "📊 Changes made:"
+if git diff --quiet; then
+    echo "No changes"
+else
+    git diff > /tmp/patch.diff
+    echo "================================================================================"
+    cat /tmp/patch.diff
+    echo "================================================================================"
+fi
