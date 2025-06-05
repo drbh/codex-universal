@@ -50,6 +50,10 @@ echo "📦 Cloning repository..."
 git clone "$REPO_URL" || { echo "❌ Clone failed"; exit 1; }
 cd "$REPO_NAME"
 
+# List files
+echo "🔍 Files in repository:"
+ls -la
+
 # Git configuration
 git config user.email "codex@example.com" 2>/dev/null || true
 git config user.name "Codex CLI" 2>/dev/null || true
